@@ -1,7 +1,6 @@
 
 import type { Project } from '../types/project'
 import type { ProjectRepository } from '../repositories/projectRepository'
-import type { TaskService } from './taskService'
 
 export interface CreateProjectInput {
   name: string
@@ -11,10 +10,7 @@ export interface CreateProjectInput {
 }
 
 export class ProjectService {
-  constructor(
-    private repository: ProjectRepository,
-    private taskService: TaskService
-  ) {}
+  constructor(private repository: ProjectRepository) {}
 
   async getProjects(): Promise<Project[]> {
     return this.repository.getAll()
@@ -48,10 +44,7 @@ export class ProjectService {
 
   async updateProject(
     id: string,
-    changes: Partial<Pick<
-      Project,
-      'name' | 'description' | 'icon' | 'color'
-    >>
+    changes: Partial<Pick<Project, 'name' | 'description' | 'icon' | 'color'>>
   ): Promise<Project> {
     const existing = await this.repository.getById(id)
 
@@ -74,21 +67,10 @@ export class ProjectService {
   }
 
   async deleteProject(id: string): Promise<void> {
-    const project = await this.repository.getById(id)
+    const existing = await this.repository.getById(id)
 
-    if (!project) {
+    if (!existing) {
       throw new Error('Project does not exist')
-    }
-
-    const tasks = await this.taskService.getTasks()
-
-    // Delete top-level tasks. TaskService handles their descendants.
-    const projectTasks = tasks.filter(
-      task => task.projectId === id && task.parentTaskId === null
-    )
-
-    for (const task of projectTasks) {
-      await this.taskService.deleteTask(task.id)
     }
 
     await this.repository.delete(id)
